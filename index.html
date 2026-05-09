@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dart Wheel</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial,sans-serif;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+background:linear-gradient(135deg,#d9fdd3,#d8ecff,#ffd9f2)
+}
+
+.container{
+text-align:center;
+background:rgba(255,255,255,.7);
+padding:30px;
+border-radius:24px;
+box-shadow:0 10px 30px rgba(0,0,0,.12)
+}
+
+#wheel{
+border-radius:50%;
+box-shadow:0 8px 20px rgba(0,0,0,.18)
+}
+
+button{
+margin-top:20px;
+padding:12px 28px;
+border:none;
+border-radius:14px;
+background:#7dd3fc;
+color:#003049;
+font-size:18px;
+font-weight:bold;
+cursor:pointer
+}
+
+button:hover{
+transform:scale(1.05)
+}
+
+#result{
+margin-top:16px;
+font-size:26px;
+font-weight:bold;
+color:#333
+}
+
+/*#sanction{
+margin-top:15px;
+font-size:20px;
+font-weight:bold;
+color:#ff006e;
+max-width:500px;
+margin-left:auto;
+margin-right:auto;
+line-height:1.5
+}
+*/
+
+#sanction{
+margin-top:15px;
+font-size:20px;
+font-weight:bold;
+color:#0a7697;
+max-width:500px;
+margin-left:auto;
+margin-right:auto;
+line-height:1.5
+}
+
+.arrow{
+font-size:40px;
+color:#ff4d6d;
+line-height:1
+}
+
+button:active{
+transform:scale(.98)
+}
+
+@keyframes glow{
+0%{box-shadow:0 0 0 rgba(0,0,0,0)}
+50%{box-shadow:0 0 25px rgba(125,211,252,.8)}
+100%{box-shadow:0 0 0 rgba(0,0,0,0)}
+}
+
+.win{
+animation:glow .8s ease 2
+}
+</style>
+</head>
+
+<body>
+
+<div class='container'>
+
+<div class='arrow'>▼</div>
+
+<canvas id='wheel' width='420' height='420'></canvas>
+
+<div>
+<button id='spinBtn' onclick='spin()'>Spin 🎯</button>
+</div>
+
+<div id='result'>Result: -</div>
+
+<div id='sanction'>Sanction: -</div>
+
+</div>
+
+<script>
+
+const canvas=document.getElementById('wheel');
+const ctx=canvas.getContext('2d');
+
+const nums=[1,2,3,4,5,6,7,8,9,10,11,12];
+
+const sanctions={
+1:"Dispense 😎",
+
+2:"Expliquer une idée en langue des signes 🤟",
+
+3:"Question du professeur : s’il ne répond pas, il reste debout pendant 15 minutes 🧍",
+
+4:"Rester par terre pendant 10 minutes 😂",
+
+5:"Faire le résumé de la séance 📝",
+
+6:"Sortir en retard de 10 minutes ⏰",
+
+7:"Faire un exposé pendant 30 minutes 🎤",
+
+8:"Confisquer le téléphone pendant toute la séance 📱",
+
+9:"Ne pas prendre la pause et rassembler la classe 🚫",
+
+10:"Supprimer une application qu’il aime de son téléphone ❌📲",
+
+11:"Le professeur donne la sanction 👨‍🏫",
+
+12:"Choisir 2 punitions parmi les numéros 1 à 11 😈"
+};
+
+const colors=[
+'#b7f7c1',
+'#bde0fe',
+'#ffc8dd',
+'#caffbf',
+'#a0e7e5',
+'#f9f7a1'
+];
+
+let angle=0;
+
+function beep(freq,time){
+const o=audioCtx.createOscillator();
+const g=audioCtx.createGain();
+
+o.type='triangle';
+o.frequency.value=freq;
+
+o.connect(g);
+g.connect(audioCtx.destination);
+
+g.gain.value=.03;
+
+o.start();
+
+g.gain.exponentialRampToValueAtTime(
+0.0001,
+audioCtx.currentTime+time
+);
+
+o.stop(audioCtx.currentTime+time);
+}
+
+const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+
+function drawWheel(rot=0){
+
+const cx=210,cy=210,r=190;
+
+ctx.clearRect(0,0,420,420);
+
+for(let i=0;i<12;i++){
+
+const start=(i*Math.PI*2/12)+rot-Math.PI/2;
+const end=start+(Math.PI*2/12);
+
+ctx.beginPath();
+
+ctx.moveTo(cx,cy);
+
+ctx.arc(cx,cy,r,start,end);
+
+ctx.closePath();
+
+ctx.fillStyle=colors[i%colors.length];
+
+ctx.fill();
+
+ctx.strokeStyle='#fff';
+
+ctx.lineWidth=3;
+
+ctx.stroke();
+
+ctx.save();
+
+ctx.translate(cx,cy);
+
+ctx.rotate(start+Math.PI/12);
+
+ctx.fillStyle='#222';
+
+ctx.font='bold 24px Arial';
+
+ctx.textAlign='center';
+
+ctx.fillText(nums[i],r-55,8);
+
+ctx.restore();
+}
+
+ctx.beginPath();
+
+ctx.arc(cx,cy,28,0,Math.PI*2);
+
+ctx.fillStyle='#fff';
+
+ctx.fill();
+}
+
+drawWheel();
+
+let spinning=false;
+
+function spin(){
+
+document.getElementById('spinBtn').classList.remove('win');
+
+if(spinning) return;
+
+spinning=true;
+
+const target=Math.floor(Math.random()*12);
+
+const sector=(Math.PI*2/12);
+
+const finalAngle=(Math.PI*2*6) - (target*sector) - (sector/2);
+
+const start=angle;
+
+const duration=3000;
+
+const t0=performance.now();
+
+function anim(t){
+
+let p=Math.min((t-t0)/duration,1);
+
+p=1-Math.pow(1-p,3);
+
+angle=start+(finalAngle-start)*p;
+
+drawWheel(angle);
+
+if(p<0.96 && Math.random()>0.7)
+beep(300+Math.random()*400,0.03);
+
+if(p<1){
+
+requestAnimationFrame(anim);
+
+}else{
+
+spinning=false;
+
+const val=nums[target];
+
+document.getElementById('result').innerText='Result: '+val;
+
+document.getElementById('sanction').innerText='Sanction: '+sanctions[val];
+
+document.getElementById('spinBtn').classList.add('win');
+
+beep(700,0.15);
+
+beep(900,0.18);
+}
+}
+
+requestAnimationFrame(anim);
+}
+
+</script>
+
+</body>
+</html>
